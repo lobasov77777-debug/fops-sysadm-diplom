@@ -42,6 +42,10 @@ resource "yandex_vpc_security_group" "service" {
     protocol       = "ANY"
     v4_cidr_blocks = ["0.0.0.0/0"]
   }
+  # Ingress rules are managed by standalone rule resources below.
+  lifecycle {
+    ignore_changes = [ingress]
+  }
 }
 
 resource "yandex_vpc_security_group_rule" "bastion_public" {

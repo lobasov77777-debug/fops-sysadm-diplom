@@ -33,8 +33,8 @@ remote_write:
   - url: http://127.0.0.1:9201/write
     write_relabel_configs:
       - source_labels: [__name__]
-        regex: '(up|node_cpu_seconds_total|node_memory_MemAvailable_bytes|nginx_http_response_count_total|nginx_http_response_size_bytes)'
+        regex: '(up|node_cpu_seconds_total|node_load1|node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_vmstat_pgmajfault|node_vmstat_oom_kill|node_disk_io_time_seconds_total|node_disk_io_time_weighted_seconds_total|node_network_(receive|transmit)_(bytes|drop|errs)_total|course_(cpu|disk)_error_events_total|nginx_http_response_count_total|nginx_http_response_size_bytes)'
         action: keep
 remote_read:
   - url: http://127.0.0.1:9201/read
-    read_recent: false
+    read_recent: true

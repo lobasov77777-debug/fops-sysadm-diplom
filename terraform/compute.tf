@@ -55,7 +55,7 @@ resource "yandex_compute_instance" "service" {
   metadata = {
     user-data = "#cloud-config\n${yamlencode(local.base_cloud_config)}"
   }
-  depends_on = [yandex_vpc_security_group_rule.ssh, yandex_vpc_security_group_rule.private]
+  depends_on = [yandex_vpc_security_group_rule.bastion_public, yandex_vpc_security_group_rule.ssh, yandex_vpc_security_group_rule.private]
 }
 
 resource "yandex_compute_instance_group" "web" {
