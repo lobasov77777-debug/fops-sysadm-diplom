@@ -3,6 +3,7 @@ services:
   nginx-exporter:
     image: quay.io/martinhelmich/prometheus-nginxlog-exporter:{{ nginx_exporter_version }}
     container_name: course-nginx-exporter
+    user: root
     restart: unless-stopped
     network_mode: host
     command: ["-config-file", "/etc/nginx-exporter.hcl"]

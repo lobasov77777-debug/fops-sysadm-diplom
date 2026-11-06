@@ -1,0 +1,11 @@
+folder_id                  = "your-folder-id"
+service_account_id         = "terraform-and-instance-group-service-account-id"
+observer_service_account_id = "discovery-and-backups-service-account-id"
+ssh_public_key             = "ssh-ed25519 your-public-key"
+admin_cidrs                = ["your-public-ip/32"]
+source_url                 = "https://github.com/your-account/fops-sysadm-diplom.git"
+source_ref                 = "pinned-git-commit"
+elastic_password           = "set-in-private-tfvars"
+filebeat_password          = "set-in-private-tfvars"
+postgres_password          = "set-in-private-tfvars"
+enable_https               = false

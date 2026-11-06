@@ -114,6 +114,14 @@ resource "yandex_vpc_security_group_rule" "alb_health" {
   predefined_target      = "loadbalancer_healthchecks"
 }
 
+resource "yandex_vpc_security_group_rule" "web_health" {
+  security_group_binding = yandex_vpc_security_group.service["web"].id
+  direction              = "ingress"
+  protocol               = "TCP"
+  port                   = 80
+  predefined_target      = "loadbalancer_healthchecks"
+}
+
 resource "yandex_vpc_security_group_rule" "alb_internal" {
   security_group_binding = yandex_vpc_security_group.service["alb"].id
   direction              = "ingress"

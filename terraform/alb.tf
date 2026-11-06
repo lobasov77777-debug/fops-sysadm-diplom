@@ -5,6 +5,19 @@ resource "yandex_vpc_address" "site" {
   }
 }
 
+locals {
+  site_domain = "netology-anastasia.${replace(yandex_vpc_address.site.external_ipv4_address[0].address, ".", "-")}.sslip.io"
+}
+
+resource "yandex_cm_certificate" "site" {
+  name    = "${var.prefix}-site"
+  domains = [local.site_domain]
+  managed {
+    challenge_type  = "HTTP"
+    challenge_count = 1
+  }
+}
+
 resource "yandex_alb_backend_group" "web" {
   name = "${var.prefix}-web"
   http_backend {
@@ -33,7 +46,10 @@ resource "yandex_alb_virtual_host" "site" {
   http_router_id = yandex_alb_http_router.site.id
   authority      = ["*"]
   dynamic "route" {
-    for_each = var.certificate_challenges
+    for_each = { for challenge in yandex_cm_certificate.site.challenges :
+      regex("https?://[^/]+(/.*)", challenge.http_url)[0] => challenge.http_content
+      if challenge.http_url != ""
+    }
     content {
       name = "acme-${substr(sha256(route.key), 0, 10)}"
       http_route {
@@ -95,7 +111,7 @@ resource "yandex_alb_load_balancer" "site" {
     }
   }
   dynamic "listener" {
-    for_each = var.certificate_id == "" ? [] : [var.certificate_id]
+    for_each = var.enable_https ? [yandex_cm_certificate.site.id] : []
     content {
       name = "https"
       endpoint {

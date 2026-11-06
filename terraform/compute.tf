@@ -24,12 +24,13 @@ locals {
 }
 
 resource "yandex_compute_instance" "service" {
-  for_each    = local.hosts
-  name        = "${var.prefix}-${each.key}"
-  hostname    = "${var.prefix}-${each.key}"
-  zone        = local.subnet_specs[each.value.subnet].zone
-  platform_id = "standard-v3"
-  labels      = { project = var.prefix, role = each.key }
+  for_each           = local.hosts
+  name               = "${var.prefix}-${each.key}"
+  hostname           = "${var.prefix}-${each.key}"
+  zone               = local.subnet_specs[each.value.subnet].zone
+  platform_id        = "standard-v3"
+  service_account_id = each.key == "prometheus" ? var.observer_service_account_id : null
+  labels             = { project = var.prefix, role = each.key }
   resources {
     cores         = 2
     memory        = each.value.memory

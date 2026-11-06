@@ -18,6 +18,8 @@
     creates: /opt/course/postgresql-prometheus-adapter/adapter
   environment:
     CGO_ENABLED: '0'
+    GOFLAGS: '-p=1'
+    GOMAXPROCS: '1'
 
 - name: Install Yandex PostgreSQL CA certificate
   ansible.builtin.get_url:
@@ -97,6 +99,51 @@
     dest: /opt/course/web-targets.json
     content: "{{ [{'targets': groups['web'] | map('extract', hostvars, 'ansible_host') | list, 'labels': {'role': 'web'}}] | to_nice_json }}"
     mode: '0644'
+
+- name: Install cloud discovery and backup reconciler
+  ansible.builtin.copy:
+    src: discovery.py
+    dest: /opt/course/discovery.py
+    mode: '0755'
+
+- name: Configure discovery and backup scope
+  ansible.builtin.copy:
+    dest: /opt/course/discovery.json
+    mode: '0644'
+    content: "{{ {'folder_id': folder_id, 'prefix': 'netology-course', 'snapshot_schedule_id': snapshot_schedule_id} | to_nice_json }}"
+
+- name: Install discovery service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/course-discovery.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Refresh course monitoring and backup disk membership
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/python3 /opt/course/discovery.py
+
+- name: Install discovery timer
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/course-discovery.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Discover autoscaled web servers every minute
+      [Timer]
+      OnBootSec=30s
+      OnUnitActiveSec=60s
+      [Install]
+      WantedBy=timers.target
+
+- name: Start discovery timer
+  ansible.builtin.systemd:
+    name: course-discovery.timer
+    daemon_reload: true
+    enabled: true
+    state: started
 
 - name: Install alert rules and routing
   ansible.builtin.copy:

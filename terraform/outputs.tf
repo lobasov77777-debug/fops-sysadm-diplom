@@ -25,7 +25,15 @@ output "site_ip" {
 }
 
 output "site_domain" {
-  value = "netology-anastasia.${replace(yandex_vpc_address.site.external_ipv4_address[0].address, ".", "-")}.sslip.io"
+  value = local.site_domain
+}
+
+output "certificate_id" {
+  value = yandex_cm_certificate.site.id
+}
+
+output "certificate_status" {
+  value = yandex_cm_certificate.site.status
 }
 
 output "postgres_cluster_id" {
@@ -41,5 +49,5 @@ output "postgres_hosts" {
 }
 
 output "snapshot_schedule_id" {
-  value = try(yandex_compute_snapshot_schedule.daily[0].id, null)
+  value = yandex_compute_snapshot_schedule.daily.id
 }

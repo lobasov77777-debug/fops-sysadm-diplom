@@ -6,6 +6,11 @@ variable "service_account_id" {
   type = string
 }
 
+variable "observer_service_account_id" {
+  description = "Runtime identity for discovery and snapshot-schedule reconciliation."
+  type        = string
+}
+
 variable "prefix" {
   type    = string
   default = "netology-course"
@@ -52,20 +57,8 @@ variable "postgres_password" {
   sensitive = true
 }
 
-variable "certificate_id" {
-  description = "Issued Certificate Manager certificate. Added after the HTTP challenge."
-  type        = string
-  default     = ""
-}
-
-variable "certificate_challenges" {
-  description = "HTTP-01 paths and response bodies returned by Certificate Manager."
-  type        = map(string)
-  default     = {}
-}
-
-variable "enable_backups" {
-  description = "Enable after the initial infrastructure apply, when instance-group disk IDs are available."
+variable "enable_https" {
+  description = "Enable after Certificate Manager reports ISSUED."
   type        = bool
   default     = false
 }
