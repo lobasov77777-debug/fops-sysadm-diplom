@@ -69,8 +69,8 @@ resource "yandex_compute_instance_group" "web" {
     labels      = { project = var.prefix, role = "web" }
     resources {
       cores         = 2
-      memory        = 1
-      core_fraction = 20
+      memory        = 2
+      core_fraction = 100
     }
     scheduling_policy {
       preemptible = true
@@ -114,6 +114,7 @@ resource "yandex_compute_instance_group" "web" {
   }
   scale_policy {
     auto_scale {
+      auto_scale_type        = "REGIONAL"
       initial_size           = 2
       min_zone_size          = 1
       max_size               = 3

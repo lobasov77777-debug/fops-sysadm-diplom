@@ -79,11 +79,18 @@
   ansible.builtin.command: /usr/local/sbin/course-kernel-errors
   changed_when: false
 
+- name: Enable the Node Exporter textfile directory
+  ansible.builtin.copy:
+    dest: /etc/default/prometheus-node-exporter
+    mode: '0644'
+    content: 'ARGS="--collector.textfile.directory=/var/lib/prometheus/node-exporter"'
+  register: node_exporter_config
+
 - name: Start Node Exporter
   ansible.builtin.service:
     name: prometheus-node-exporter
     enabled: true
-    state: started
+    state: "{{ 'restarted' if node_exporter_config.changed else 'started' }}"
 
 - name: Configure nginx log exporter
   ansible.builtin.copy:
@@ -112,7 +119,9 @@
     url: http://127.0.0.1:9100/metrics
     return_content: true
   register: node_metrics
-  failed_when: "node_metrics.status != 200 or 'course_cpu_error_events_total' not in node_metrics.content"
+  until: "node_metrics.status == 200 and 'course_cpu_error_events_total' in node_metrics.content"
+  retries: 15
+  delay: 2
 
 - name: Verify nginx log exporter
   ansible.builtin.uri:

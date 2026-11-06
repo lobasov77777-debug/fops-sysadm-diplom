@@ -125,5 +125,5 @@
     body_format: json
     body:
       password: "{{ reviewer_password }}"
-      roles: [kibana_admin, course_reader]
+      roles: [viewer, course_reader]
   no_log: true
