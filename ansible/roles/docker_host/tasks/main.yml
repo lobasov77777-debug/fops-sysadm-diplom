@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     name:
       - docker.io
-      - docker-compose
+      - docker-compose-v2
       - curl
       - ca-certificates
       - python3

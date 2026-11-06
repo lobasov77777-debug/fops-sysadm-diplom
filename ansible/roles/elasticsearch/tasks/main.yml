@@ -17,7 +17,7 @@
   no_log: true
 
 - name: Start Elasticsearch
-  ansible.builtin.command: docker-compose -f /opt/course/elasticsearch.yml up -d
+  ansible.builtin.command: docker compose -f /opt/course/elasticsearch.yml up -d
   register: es_start
   changed_when: "'Creating' in es_start.stderr or 'Recreating' in es_start.stderr"
 

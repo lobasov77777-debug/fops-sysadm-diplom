@@ -44,7 +44,7 @@
   no_log: true
 
 - name: Start Grafana
-  ansible.builtin.command: docker-compose -f /opt/course/grafana.yml up -d
+  ansible.builtin.command: docker compose -f /opt/course/grafana.yml up -d
   register: grafana_start
   changed_when: "'Creating' in grafana_start.stderr or 'Recreating' in grafana_start.stderr"
 

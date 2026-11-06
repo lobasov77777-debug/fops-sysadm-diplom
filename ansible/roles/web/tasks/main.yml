@@ -108,7 +108,7 @@
     mode: '0644'
 
 - name: Start nginx log exporter
-  ansible.builtin.command: docker-compose -f /opt/course/nginx-exporter.yml up -d
+  ansible.builtin.command: docker compose -f /opt/course/nginx-exporter.yml up -d
   register: nginx_exporter_start
   changed_when: "'Creating' in nginx_exporter_start.stderr or 'Recreating' in nginx_exporter_start.stderr"
 

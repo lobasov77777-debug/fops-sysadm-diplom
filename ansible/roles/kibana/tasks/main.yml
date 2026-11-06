@@ -7,7 +7,7 @@
   no_log: true
 
 - name: Start Kibana
-  ansible.builtin.command: docker-compose -f /opt/course/kibana.yml up -d
+  ansible.builtin.command: docker compose -f /opt/course/kibana.yml up -d
   register: kibana_start
   changed_when: "'Creating' in kibana_start.stderr or 'Recreating' in kibana_start.stderr"
 

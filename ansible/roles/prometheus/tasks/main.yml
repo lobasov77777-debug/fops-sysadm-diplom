@@ -169,7 +169,7 @@
   changed_when: false
 
 - name: Start Prometheus and Alertmanager
-  ansible.builtin.command: docker-compose -f /opt/course/metrics.yml up -d
+  ansible.builtin.command: docker compose -f /opt/course/metrics.yml up -d
   register: metrics_start
   changed_when: "'Creating' in metrics_start.stderr or 'Recreating' in metrics_start.stderr"
 

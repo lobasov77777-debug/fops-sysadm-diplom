@@ -30,7 +30,7 @@
 
 - name: Start Filebeat
   ansible.builtin.command: >-
-    docker-compose -f /opt/course/filebeat-compose.yml up -d
+    docker compose -f /opt/course/filebeat-compose.yml up -d
     {{ '--force-recreate' if filebeat_config.changed else '' }}
   register: filebeat_start
   changed_when: "'Creating' in filebeat_start.stderr or 'Recreating' in filebeat_start.stderr"
