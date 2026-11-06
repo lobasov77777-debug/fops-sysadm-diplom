@@ -742,10 +742,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 100000
               }
             ]
           },
@@ -800,10 +796,6 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 100000000
               }
             ]
           },
@@ -914,12 +906,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
               },
               {
-                "color": "red",
-                "value": 2
+                "color": "green",
+                "value": 1
               }
             ]
           },

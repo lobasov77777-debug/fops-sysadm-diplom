@@ -34,6 +34,11 @@ dashboard = {
     "panels": [],
 }
 for index, (title, expression, unit, threshold) in enumerate(panels):
+    steps = [{"color": "green", "value": None}]
+    if index < 12 or "Requests / second" in title:
+        steps.append({"color": "red", "value": threshold})
+    if "Availability" in title:
+        steps = [{"color": "red", "value": None}, {"color": "green", "value": 1}]
     dashboard["panels"].append({
         "id": index + 1,
         "type": "timeseries",
@@ -45,10 +50,7 @@ for index, (title, expression, unit, threshold) in enumerate(panels):
             "defaults": {
                 "unit": unit,
                 "min": 0,
-                "thresholds": {"mode": "absolute", "steps": [
-                    {"color": "green", "value": None},
-                    {"color": "red", "value": threshold},
-                ]},
+                "thresholds": {"mode": "absolute", "steps": steps},
                 "custom": {"drawStyle": "line", "fillOpacity": 8, "thresholdsStyle": {"mode": "line"}},
             },
             "overrides": [],
