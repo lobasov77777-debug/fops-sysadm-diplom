@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:{{ elastic_version }}
+    container_name: course-elasticsearch
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      node.name: course-elasticsearch
+      cluster.name: course-logs
+      discovery.type: single-node
+      network.host: 0.0.0.0
+      xpack.security.enabled: 'true'
+      xpack.security.enrollment.enabled: 'false'
+      xpack.security.http.ssl.enabled: 'false'
+      xpack.security.transport.ssl.enabled: 'false'
+      ELASTIC_PASSWORD: {{ elastic_password | to_json }}
+      ES_JAVA_OPTS: '-Xms1g -Xmx1g'
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+volumes:
+  elastic-data:

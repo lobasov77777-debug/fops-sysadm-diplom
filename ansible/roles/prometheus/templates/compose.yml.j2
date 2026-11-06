@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  prometheus:
+    image: prom/prometheus:{{ prometheus_version }}
+    container_name: course-prometheus
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    volumes:
+      - /opt/course:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+  alertmanager:
+    image: prom/alertmanager:{{ alertmanager_version }}
+    container_name: course-alertmanager
+    restart: unless-stopped
+    network_mode: host
+    command: ['--config.file=/etc/alertmanager/alertmanager.yml', '--storage.path=/alertmanager']
+    volumes:
+      - /opt/course/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+volumes:
+  prometheus-data:
+  alertmanager-data:

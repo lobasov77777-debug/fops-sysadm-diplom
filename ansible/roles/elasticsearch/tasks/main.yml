@@ -1,0 +1,129 @@
+---
+- name: Set virtual memory limit for Elasticsearch
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/90-course-elasticsearch.conf
+    content: "vm.max_map_count=262144\n"
+    mode: '0644'
+
+- name: Apply Elasticsearch virtual memory limit
+  ansible.builtin.command: sysctl -w vm.max_map_count=262144
+  changed_when: false
+
+- name: Configure Elasticsearch
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: /opt/course/elasticsearch.yml
+    mode: '0600'
+  no_log: true
+
+- name: Start Elasticsearch
+  ansible.builtin.command: docker-compose -f /opt/course/elasticsearch.yml up -d
+  register: es_start
+  changed_when: "'Creating' in es_start.stderr or 'Recreating' in es_start.stderr"
+
+- name: Wait for Elasticsearch
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: es_health
+  until: es_health.status == 200
+  retries: 50
+  delay: 5
+  no_log: true
+
+- name: Create course index template
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_index_template/course-logs
+    method: PUT
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      index_patterns: [course-logs-*]
+      template:
+        settings:
+          number_of_shards: 1
+          number_of_replicas: 0
+        mappings:
+          properties:
+            '@timestamp': {type: date}
+            message: {type: text}
+            service:
+              properties:
+                name: {type: keyword}
+            event:
+              properties:
+                dataset: {type: keyword}
+  no_log: true
+
+- name: Create Filebeat writer role
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_security/role/course_filebeat
+    method: PUT
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      cluster: [monitor]
+      indices:
+        - names: [course-logs-*]
+          privileges: [auto_configure, create_index, create_doc]
+  no_log: true
+
+- name: Create Filebeat account
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_security/user/filebeat_writer
+    method: PUT
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      password: "{{ filebeat_password }}"
+      roles: [course_filebeat]
+  no_log: true
+
+- name: Set Kibana system password
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_security/user/kibana_system/_password
+    method: POST
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      password: "{{ kibana_system_password }}"
+  no_log: true
+
+- name: Create reviewer data role
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_security/role/course_reader
+    method: PUT
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      cluster: [monitor]
+      indices:
+        - names: [course-logs-*]
+          privileges: [read, view_index_metadata]
+  no_log: true
+
+- name: Create Kibana reviewer account
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9200/_security/user/course_viewer
+    method: PUT
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      password: "{{ reviewer_password }}"
+      roles: [kibana_admin, course_reader]
+  no_log: true

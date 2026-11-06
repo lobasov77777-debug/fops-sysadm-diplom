@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:{{ elastic_version }}
+    container_name: course-filebeat
+    user: root
+    restart: unless-stopped
+    network_mode: host
+    command: ["filebeat", "-e", "--strict.perms=true"]
+    volumes:
+      - /opt/course/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - filebeat-data:/usr/share/filebeat/data
+volumes:
+  filebeat-data:

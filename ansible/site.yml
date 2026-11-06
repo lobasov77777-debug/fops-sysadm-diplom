@@ -1,0 +1,44 @@
+---
+- name: Prepare service hosts
+  hosts: services
+  become: true
+  roles:
+    - docker_host
+
+- name: Deploy Elasticsearch and accounts
+  hosts: elasticsearch
+  become: true
+  roles:
+    - elasticsearch
+
+- name: Deploy metrics and alerts
+  hosts: prometheus
+  become: true
+  roles:
+    - prometheus
+
+- name: Deploy Grafana
+  hosts: grafana
+  become: true
+  roles:
+    - grafana
+
+- name: Deploy Kibana
+  hosts: kibana
+  become: true
+  roles:
+    - kibana
+
+- name: Send service logs to Elasticsearch
+  hosts: services
+  become: true
+  roles:
+    - filebeat
+
+- name: Verify existing web servers
+  hosts: web
+  become: true
+  roles:
+    - docker_host
+    - web
+    - filebeat

@@ -1,0 +1,59 @@
+---
+- name: Configure Kibana
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: /opt/course/kibana.yml
+    mode: '0600'
+  no_log: true
+
+- name: Start Kibana
+  ansible.builtin.command: docker-compose -f /opt/course/kibana.yml up -d
+  register: kibana_start
+  changed_when: "'Creating' in kibana_start.stderr or 'Recreating' in kibana_start.stderr"
+
+- name: Wait for Kibana
+  ansible.builtin.uri:
+    url: http://127.0.0.1:5601/api/status
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: kibana_health
+  until: kibana_health.status == 200
+  retries: 60
+  delay: 5
+  no_log: true
+
+- name: Configure Kibana data view
+  ansible.builtin.uri:
+    url: http://127.0.0.1:5601/api/data_views/data_view
+    method: POST
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    headers:
+      kbn-xsrf: course
+    body_format: json
+    body:
+      data_view:
+        id: course-logs
+        title: course-logs-*
+        name: Course logs
+        timeFieldName: '@timestamp'
+      override: true
+  no_log: true
+
+- name: Make course logs the default data view
+  ansible.builtin.uri:
+    url: http://127.0.0.1:5601/api/data_views/default
+    method: POST
+    user: elastic
+    password: "{{ elastic_password }}"
+    force_basic_auth: true
+    headers:
+      kbn-xsrf: course
+    body_format: json
+    body:
+      data_view_id: course-logs
+      force: true
+  no_log: true

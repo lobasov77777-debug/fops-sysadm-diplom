@@ -1,0 +1,40 @@
+---
+- name: Install container tools
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose
+      - curl
+      - ca-certificates
+      - python3
+    update_cache: true
+    cache_valid_time: 3600
+    lock_timeout: 300
+
+- name: Start Docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Create configuration and log directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/course
+    - /var/log/course
+
+- name: Configure log rotation for Docker
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}'
+    mode: '0644'
+  register: docker_logging
+
+- name: Reload Docker when logging configuration changes
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  when: docker_logging.changed

@@ -1,0 +1,40 @@
+filebeat.inputs:
+  - type: filestream
+    id: nginx-access
+    enabled: true
+    paths: [/var/log/nginx/access.log]
+    fields:
+      service.name: nginx
+      event.dataset: nginx.access
+    fields_under_root: true
+  - type: filestream
+    id: nginx-error
+    enabled: true
+    paths: [/var/log/nginx/error.log]
+    fields:
+      service.name: nginx
+      event.dataset: nginx.error
+    fields_under_root: true
+  - type: filestream
+    id: application-containers
+    enabled: true
+    paths: [/var/log/course/course-*.log]
+    prospector.scanner.symlinks: true
+    parsers:
+      - container:
+          format: docker
+          stream: all
+    fields:
+      service.name: {{ inventory_hostname | to_json }}
+      event.dataset: application.log
+    fields_under_root: true
+output.elasticsearch:
+  hosts: ["http://{{ elasticsearch_ip }}:9200"]
+  username: filebeat_writer
+  password: {{ filebeat_password | to_json }}
+  index: "course-logs-%{+yyyy.MM.dd}"
+setup.ilm.enabled: false
+setup.template.enabled: false
+logging.level: warning
+processors:
+  - add_host_metadata: {}

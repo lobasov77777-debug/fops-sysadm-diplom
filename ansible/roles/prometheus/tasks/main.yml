@@ -1,0 +1,137 @@
+---
+- name: Install build and database tools
+  ansible.builtin.apt:
+    name: [git, golang-go, postgresql-client]
+    lock_timeout: 300
+
+- name: Clone the requested PostgreSQL adapter
+  ansible.builtin.git:
+    repo: https://github.com/CrunchyData/postgresql-prometheus-adapter.git
+    dest: /opt/course/postgresql-prometheus-adapter
+    version: "{{ adapter_revision }}"
+  register: adapter_source
+
+- name: Build PostgreSQL adapter
+  ansible.builtin.command:
+    cmd: go build -mod=mod -o /opt/course/postgresql-prometheus-adapter/adapter .
+    chdir: /opt/course/postgresql-prometheus-adapter
+    creates: /opt/course/postgresql-prometheus-adapter/adapter
+  environment:
+    CGO_ENABLED: '0'
+
+- name: Install Yandex PostgreSQL CA certificate
+  ansible.builtin.get_url:
+    url: https://storage.yandexcloud.net/cloud-certs/CA.pem
+    dest: /opt/course/postgresql-ca.pem
+    mode: '0644'
+
+- name: Configure protected adapter connection
+  ansible.builtin.template:
+    src: adapter.env.j2
+    dest: /opt/course/adapter.env
+    mode: '0600'
+  no_log: true
+  register: adapter_env
+
+- name: Install adapter systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/course-pg-adapter.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=CrunchyData PostgreSQL Prometheus adapter
+      After=network-online.target
+      Wants=network-online.target
+      [Service]
+      EnvironmentFile=/opt/course/adapter.env
+      ExecStart=/opt/course/postgresql-prometheus-adapter/adapter --web-listen-address=127.0.0.1:9201 --pg-partition=daily --pg-commit-secs=5
+      Restart=on-failure
+      RestartSec=5
+      StandardOutput=append:/var/log/course/pg-adapter.log
+      StandardError=append:/var/log/course/pg-adapter.log
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Start PostgreSQL adapter
+  ansible.builtin.systemd:
+    name: course-pg-adapter
+    daemon_reload: true
+    enabled: true
+    state: "{{ 'restarted' if adapter_env.changed else 'started' }}"
+
+- name: Install local notification receiver
+  ansible.builtin.copy:
+    src: alert-receiver.py
+    dest: /opt/course/alert-receiver.py
+    mode: '0755'
+
+- name: Install notification receiver service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/course-alert-receiver.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Course Alertmanager webhook receiver
+      After=network.target
+      [Service]
+      ExecStart=/usr/bin/python3 /opt/course/alert-receiver.py
+      Restart=on-failure
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Start notification receiver
+  ansible.builtin.systemd:
+    name: course-alert-receiver
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Install Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /opt/course/prometheus.yml
+    mode: '0644'
+
+- name: Install initial web target list
+  ansible.builtin.copy:
+    dest: /opt/course/web-targets.json
+    content: "{{ [{'targets': groups['web'] | map('extract', hostvars, 'ansible_host') | list, 'labels': {'role': 'web'}}] | to_nice_json }}"
+    mode: '0644'
+
+- name: Install alert rules and routing
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/course/{{ item }}"
+    mode: '0644'
+  loop: [alerts.yml, alertmanager.yml]
+
+- name: Configure metrics containers
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: /opt/course/metrics.yml
+    mode: '0644'
+
+- name: Check Prometheus configuration
+  ansible.builtin.command: >-
+    docker run --rm --entrypoint=/bin/promtool
+    -v /opt/course:/etc/prometheus:ro prom/prometheus:{{ prometheus_version }}
+    check config /etc/prometheus/prometheus.yml
+  changed_when: false
+
+- name: Start Prometheus and Alertmanager
+  ansible.builtin.command: docker-compose -f /opt/course/metrics.yml up -d
+  register: metrics_start
+  changed_when: "'Creating' in metrics_start.stderr or 'Recreating' in metrics_start.stderr"
+
+- name: Wait for Prometheus
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9090/-/ready
+  register: prom_ready
+  until: prom_ready.status == 200
+  retries: 20
+  delay: 2
+
+- name: Reload Prometheus configuration
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9090/-/reload
+    method: POST

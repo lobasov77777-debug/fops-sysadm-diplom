@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:{{ elastic_version }}
+    container_name: course-kibana
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      SERVER_HOST: '0.0.0.0'
+      SERVER_NAME: course-kibana
+      ELASTICSEARCH_HOSTS: 'http://{{ elasticsearch_ip }}:9200'
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: {{ kibana_system_password | to_json }}
+      XPACK_SECURITY_ENCRYPTIONKEY: {{ kibana_encryption_key | to_json }}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: {{ kibana_encryption_key | to_json }}
+      XPACK_REPORTING_ENCRYPTIONKEY: {{ kibana_encryption_key | to_json }}
+      NODE_OPTIONS: '--max-old-space-size=768'

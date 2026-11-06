@@ -1,0 +1,73 @@
+---
+- name: Create Grafana provisioning directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/course/grafana/provisioning/datasources
+    - /opt/course/grafana/provisioning/dashboards
+    - /opt/course/grafana/dashboards
+
+- name: Provision Prometheus data source
+  ansible.builtin.template:
+    src: datasource.yml.j2
+    dest: /opt/course/grafana/provisioning/datasources/prometheus.yml
+    mode: '0644'
+
+- name: Provision dashboard provider
+  ansible.builtin.copy:
+    dest: /opt/course/grafana/provisioning/dashboards/course.yml
+    mode: '0644'
+    content: |
+      apiVersion: 1
+      providers:
+        - name: course
+          orgId: 1
+          folder: Course
+          type: file
+          updateIntervalSeconds: 10
+          options:
+            path: /var/lib/grafana/dashboards
+
+- name: Install USE dashboard
+  ansible.builtin.copy:
+    src: course.json
+    dest: /opt/course/grafana/dashboards/course.json
+    mode: '0644'
+
+- name: Configure Grafana
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: /opt/course/grafana.yml
+    mode: '0600'
+  no_log: true
+
+- name: Start Grafana
+  ansible.builtin.command: docker-compose -f /opt/course/grafana.yml up -d
+  register: grafana_start
+  changed_when: "'Creating' in grafana_start.stderr or 'Recreating' in grafana_start.stderr"
+
+- name: Wait for Grafana
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/health
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 40
+  delay: 3
+
+- name: Create reviewer account
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/api/admin/users
+    method: POST
+    user: course_admin
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 412]
+    body_format: json
+    body:
+      name: Course reviewer
+      login: course_viewer
+      email: course_viewer@example.invalid
+      password: "{{ reviewer_password }}"
+  no_log: true

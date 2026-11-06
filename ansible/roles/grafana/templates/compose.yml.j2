@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  grafana:
+    image: grafana/grafana:{{ grafana_version }}
+    container_name: course-grafana
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      GF_SECURITY_ADMIN_USER: course_admin
+      GF_SECURITY_ADMIN_PASSWORD: {{ grafana_admin_password | to_json }}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Viewer
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - /opt/course/grafana/provisioning:/etc/grafana/provisioning:ro
+      - /opt/course/grafana/dashboards:/var/lib/grafana/dashboards:ro
+volumes:
+  grafana-data:

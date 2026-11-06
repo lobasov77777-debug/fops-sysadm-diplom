@@ -1,0 +1,8 @@
+---
+- name: Configure every new instance-group web server
+  hosts: localhost
+  become: true
+  roles:
+    - docker_host
+    - web
+    - filebeat

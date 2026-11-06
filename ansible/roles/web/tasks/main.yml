@@ -1,0 +1,124 @@
+---
+- name: Install nginx and Node Exporter
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - prometheus-node-exporter
+    state: present
+    lock_timeout: 300
+
+- name: Deploy identical static site
+  ansible.builtin.copy:
+    src: index.html
+    dest: /var/www/html/index.html
+    mode: '0644'
+
+- name: Deploy nginx configuration
+  ansible.builtin.copy:
+    src: nginx.conf
+    dest: /etc/nginx/sites-available/default
+    mode: '0644'
+  register: nginx_config
+
+- name: Check nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Ensure nginx is running
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: "{{ 'restarted' if nginx_config.changed else 'started' }}"
+
+- name: Configure textfile collector
+  ansible.builtin.file:
+    path: /var/lib/prometheus/node-exporter
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: '0755'
+
+- name: Collect CPU and disk error events from kernel log
+  ansible.builtin.copy:
+    src: kernel-errors.py
+    dest: /usr/local/sbin/course-kernel-errors
+    mode: '0755'
+
+- name: Install kernel error collector service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/course-kernel-errors.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Export kernel CPU and disk error events
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/course-kernel-errors
+
+- name: Install kernel error collector timer
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/course-kernel-errors.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Refresh kernel error counters
+      [Timer]
+      OnBootSec=10s
+      OnUnitActiveSec=30s
+      [Install]
+      WantedBy=timers.target
+
+- name: Start kernel error collector
+  ansible.builtin.systemd:
+    name: course-kernel-errors.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Collect initial kernel counters
+  ansible.builtin.command: /usr/local/sbin/course-kernel-errors
+  changed_when: false
+
+- name: Start Node Exporter
+  ansible.builtin.service:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
+
+- name: Configure nginx log exporter
+  ansible.builtin.copy:
+    src: nginx-exporter.hcl
+    dest: /opt/course/nginx-exporter.hcl
+    mode: '0644'
+
+- name: Configure nginx exporter container
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: /opt/course/nginx-exporter.yml
+    mode: '0644'
+
+- name: Start nginx log exporter
+  ansible.builtin.command: docker-compose -f /opt/course/nginx-exporter.yml up -d
+  register: nginx_exporter_start
+  changed_when: "'Creating' in nginx_exporter_start.stderr or 'Recreating' in nginx_exporter_start.stderr"
+
+- name: Verify HTTP response
+  ansible.builtin.uri:
+    url: http://127.0.0.1/
+    status_code: 200
+
+- name: Verify Node Exporter
+  ansible.builtin.uri:
+    url: http://127.0.0.1:9100/metrics
+    return_content: true
+  register: node_metrics
+  failed_when: "node_metrics.status != 200 or 'course_cpu_error_events_total' not in node_metrics.content"
+
+- name: Verify nginx log exporter
+  ansible.builtin.uri:
+    url: http://127.0.0.1:4040/metrics
+    return_content: true
+  register: nginx_metrics
+  until: "nginx_metrics.status == 200 and 'http_response_count_total' in nginx_metrics.content"
+  retries: 15
+  delay: 2

@@ -1,0 +1,12 @@
+.terraform/
+*.tfstate*
+*.tfplan
+*.tfvars
+!terraform.tfvars.example
+inventory.yml
+secrets.yml
+private/
+*.pem
+*.key
+authorized_key.json
+__pycache__/

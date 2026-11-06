@@ -1,0 +1,8 @@
+elasticsearch_ip: 10.70.10.30
+prometheus_ip: 10.70.10.20
+elastic_version: 8.19.0
+grafana_version: 11.6.0
+prometheus_version: v2.55.1
+alertmanager_version: v0.28.1
+nginx_exporter_version: v1.9.2
+adapter_revision: cf1b1e8c3f42c9cb450e9890961321cde73d144e
