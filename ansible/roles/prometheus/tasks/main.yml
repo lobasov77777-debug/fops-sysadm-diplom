@@ -2,7 +2,10 @@
 - name: Install build and database tools
   ansible.builtin.apt:
     name: [git, golang-go, postgresql-client]
-    lock_timeout: 300
+  register: adapter_packages
+  until: adapter_packages is succeeded
+  retries: 20
+  delay: 15
 
 - name: Clone the requested PostgreSQL adapter
   ansible.builtin.git:

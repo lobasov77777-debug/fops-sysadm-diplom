@@ -9,7 +9,10 @@
       - python3
     update_cache: true
     cache_valid_time: 3600
-    lock_timeout: 300
+  register: container_packages
+  until: container_packages is succeeded
+  retries: 20
+  delay: 15
 
 - name: Start Docker
   ansible.builtin.service:

@@ -5,6 +5,10 @@
 !terraform.tfvars.example
 inventory.yml
 secrets.yml
+secrets.json
+ansible-secrets.json
+inventory.json
+*.tfvars.json
 private/
 *.pem
 *.key

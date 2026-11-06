@@ -5,7 +5,10 @@
       - nginx
       - prometheus-node-exporter
     state: present
-    lock_timeout: 300
+  register: web_packages
+  until: web_packages is succeeded
+  retries: 20
+  delay: 15
 
 - name: Deploy identical static site
   ansible.builtin.copy:
