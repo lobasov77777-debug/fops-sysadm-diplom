@@ -1,6 +1,6 @@
 resource "yandex_compute_snapshot_schedule" "daily" {
   name             = "${var.prefix}-daily"
-  retention_period = "168h"
+  retention_period = "168h0m0s"
   schedule_policy {
     expression = var.backup_cron
   }
