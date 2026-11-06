@@ -67,3 +67,9 @@ variable "postgres_version" {
   type    = string
   default = "16"
 }
+
+variable "backup_cron" {
+  description = "UTC cron expression. A one-off initial run can be scheduled before returning to daily backups."
+  type        = string
+  default     = "0 0 * * *"
+}

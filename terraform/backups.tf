@@ -2,7 +2,7 @@ resource "yandex_compute_snapshot_schedule" "daily" {
   name             = "${var.prefix}-daily"
   retention_period = "168h"
   schedule_policy {
-    expression = "0 0 * * *"
+    expression = var.backup_cron
   }
   snapshot_spec {
     description = "Daily course backup retained for seven days"
